@@ -1,0 +1,10 @@
+﻿I'm sorry, but errors were detected in your script. Please correct the
+errors listed below, and try again.
+
+
+File "game/script.rpy", line 10: Line is indented, but the preceding play music statement statement does not expect a block. Please check this line's indentation.
+    scene luna pedro before
+    ^
+
+Ren'Py Version: Ren'Py 7.5.3.22090809
+Sun Jan 29 23:40:19 2023

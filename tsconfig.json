@@ -1,0 +1,16 @@
+{
+  "ts-node": {
+    "transpileOnly": true
+  },
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "nodenext",
+    "strict": true,
+    "esModuleInterop": true,
+    "declaration": true,
+    "isolatedModules": true,
+    "outDir": "dist"
+  },
+  "include": ["index.ts"]
+}

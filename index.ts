@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import fs from 'fs'
 import path from 'path'
 import process from 'process'
@@ -5,7 +6,7 @@ import chalk from 'chalk'
 import figlet from 'figlet'
 import { authenticate } from '@google-cloud/local-auth'
 import { drive_v3, google } from 'googleapis'
-import type { OAuth2Client, JSONClient } from 'google-auth-library'
+import { OAuth2Client, JSONClient } from 'google-auth-library'
 
 const SCOPES = ['https://www.googleapis.com/auth/drive']
 const TOKEN_PATH = path.join(process.cwd(), 'token.json')

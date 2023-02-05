@@ -2,8 +2,8 @@ import fs from 'fs'
 import path from 'path'
 import process from 'process'
 import { authenticate } from '@google-cloud/local-auth'
-import { google } from 'googleapis'
-import type { BaseExternalAccountClient, OAuth2Client } from 'google-auth-library'
+import { drive_v3, google } from 'googleapis'
+import type { OAuth2Client, JSONClient } from 'google-auth-library'
 
 const SCOPES = ['https://www.googleapis.com/auth/drive']
 const TOKEN_PATH = path.join(process.cwd(), 'token.json')
@@ -20,7 +20,7 @@ class Authenticate {
     this.credentials = credentialsPath
   }
 
-  async loadSavedCredentialsIfExist(): Promise<BaseExternalAccountClient|OAuth2Client|null> {
+  async loadSavedCredentialsIfExist(): Promise<JSONClient | OAuth2Client | null> {
     try {
       const content = fs.readFileSync(this.token)
       const credentials = JSON.parse(content.toString())
@@ -43,7 +43,7 @@ class Authenticate {
     fs.writeFileSync(this.token, payload)
   }
 
-  async authorize(): Promise<BaseExternalAccountClient|OAuth2Client> {
+  async authorize(): Promise<JSONClient | OAuth2Client> {
     let client = await this.loadSavedCredentialsIfExist()
     if (client) return client
     client = await authenticate({
@@ -55,20 +55,33 @@ class Authenticate {
   }
 }
 
-export default class Download extends Authenticate {
-  private authClient: Promise<BaseExternalAccountClient | OAuth2Client>
+export default class GoogleDrive {
+  drive: drive_v3.Drive
 
-  constructor() {
-    super(SCOPES, TOKEN_PATH, CREDENTIALS_PATH)
-    this.authClient = this.init()
+  constructor(drive: drive_v3.Drive) {
+    this.drive = drive
   }
 
-  async init(): Promise<BaseExternalAccountClient | OAuth2Client> {
-    const res = await this.authorize()
-    return res
-  }
-
-  async listFiles(pageSize: number) {
-    const drive = google.drive({ version: 'v3', auth: this.authClient })
+  async listFiles(pageSize: number): Promise<void> {
+    const drive = google.drive({ version: 'v3', auth: authorize })
+    const res = await drive.files.list({
+      spaces: 'drive',
+      pageSize: pageSize,
+      fields: 'nextPageToken, files(id, name)'
+    })
+    const files = res.data.files
+    if (files?.length == 0) {
+      console.log('No files found.')
+      return
+    }
+    console.log('Files:')
+    files?.map((file) => {
+      console.log(`${file.name} (${file.id})`)
+    })
   }
 }
+
+const auths = new Authenticate(SCOPES, TOKEN_PATH, CREDENTIALS_PATH)
+const authorize = await auths.authorize()
+const drive = new GoogleDrive(google.drive({ version: 'v3', auth: authorize }))
+drive.listFiles(10)

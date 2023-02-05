@@ -92,9 +92,27 @@ export default class GoogleDrive {
     res.data.files?.forEach((file) => { console.log('Found file:', file.name, file.id) })
     return res.data.files
   }
+
+  async downloadFile(file: drive_v3.Schema$File[] | undefined) {
+    const res = await this.drive.files.get({
+      fileId: file![0].id!,
+      alt: 'media'
+    }, {
+      responseType: 'stream'
+    })
+    res.data
+      .on('end', () => console.log(chalk.greenBright('Download success!')))
+      .on('error', (err) => {
+        console.log(chalk.redBright('Error!'))
+        console.error(err)
+        return process.exit()
+      })
+      .pipe(fs.createWriteStream(file![0].name!))
+  }
 }
 
 const auths = new Authenticate(SCOPES, TOKEN_PATH, CREDENTIALS_PATH)
 const authorize = await auths.authorize()
 const drive = new GoogleDrive(google.drive({ version: 'v3', auth: authorize }))
-drive.listFiles(10)
+const found = await drive.searchFile('name = \'abstract.png\'')
+await drive.downloadFile(found)

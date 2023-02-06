@@ -7,7 +7,8 @@ import figlet from 'figlet'
 import pkg from '../package.json' assert { type: 'json' }
 import { authenticate } from '@google-cloud/local-auth'
 import { drive_v3, google } from 'googleapis'
-import { OAuth2Client, JSONClient } from 'google-auth-library'
+import { OAuth2Client } from 'google-auth-library'
+type JSONClient = typeof google.auth.JWT.prototype.fromJSON.prototype
 
 export class Authenticate {
   scopes: string[]
@@ -92,19 +93,22 @@ export class GoogleDrive {
     const res = await this.drive.files.list({
       q: query,
       fields: 'nextPageToken, files(id, name)',
-      spaces: 'drive'
+      spaces: 'drive',
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true
     })
     // res.data.files?.forEach((file) => { console.log('Found file:', file.name, file.id) })
     return res.data.files
   }
 
   async downloadFile(file: drive_v3.Schema$File[] | undefined, folderName='./temp/') {
-    if (!fs.existsSync(path.join(process.cwd(), folderName))) fs.mkdirSync(path.join(process.cwd(), folderName))
+    if (!fs.existsSync(path.join(process.cwd(), folderName))) fs.mkdirSync(path.join(process.cwd(), folderName), { recursive: true })
     for (let i = 0; i < file!.length; i++) {
       const res = await this.drive.files.get({
         fileId: file![i].id!,
         alt: 'media',
-        fields: 'files(size)'
+        fields: 'files(size)',
+        supportsAllDrives: true
       }, {
         responseType: 'stream'
       })

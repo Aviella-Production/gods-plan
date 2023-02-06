@@ -17,6 +17,7 @@ const drive = new GoogleDrive(google.drive({ version: 'v3', auth: authorize }))
  * Insert search query as you like. Don't know what to do? Go here:
  * https://developers.google.com/drive/api/guides/search-files
  */
-const found = await drive.searchFile('mimeType=\'application/vnd.google-apps.folder\' and name=\'Lain-lain\'')
-const iterate = await drive.iterateFolder(found[0].id)
-await drive.downloadFile(iterate, found[0].name)
+const found = await drive.searchFile('mimeType=\'application/vnd.google-apps.folder\' and name=\'GP\'')
+const _image = await drive.iterateFolder(found[0].id)
+const contentImage = await drive.iterateFolder(_image[0].id)
+await drive.downloadFile(contentImage, `${found[0].name}/${_image[0].name}`)

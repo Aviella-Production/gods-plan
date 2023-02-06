@@ -21,6 +21,10 @@ export class Authenticate {
     this.credentials = credentialsPath
   }
 
+  /**
+   * Load saved credentials.
+   * @returns {Promise<JSONClient | OAuth2Client | null>}
+   */
   async loadSavedCredentialsIfExist(): Promise<JSONClient | OAuth2Client | null> {
     try {
       const content = fs.readFileSync(this.token)
@@ -31,6 +35,11 @@ export class Authenticate {
     }
   }
 
+  /**
+   * Save existing credentials to local.
+   * @param client - Your credentials.
+   * @returns {Promise<void>}
+   */
   async saveCredentials(client: OAuth2Client): Promise<void> {
     const content = fs.readFileSync(this.credentials)
     const keys = JSON.parse(content.toString())
@@ -44,6 +53,10 @@ export class Authenticate {
     fs.writeFileSync(this.token, payload)
   }
 
+  /**
+   * Authorize Google Drive.
+   * @returns {Promise<JSONClient | OAuth2Client>}
+   */
   async authorize(): Promise<JSONClient | OAuth2Client> {
     console.log(chalk.cyan(figlet.textSync('*Asset Downloader*')), '\n')
     console.log(chalk.yellow('=>'),chalk.magenta('Source code version:'), chalk.green(pkg.version))
@@ -72,7 +85,12 @@ export class GoogleDrive {
     this.drive = drive
   }
 
-  async listFiles(pageSize: number): Promise<void> {
+  /**
+   * List all of your file.
+   * @param {number} pageSize - How many of item to be shown.
+   * @returns {Promise<drive_v3.Schema$File[] | undefined>}
+   */
+  async listFiles(pageSize: number): Promise<drive_v3.Schema$File[] | undefined> {
     const res = await this.drive.files.list({
       spaces: 'drive',
       pageSize: pageSize,
@@ -87,9 +105,15 @@ export class GoogleDrive {
     files?.map((file) => {
       console.log(`${file.name} (${file.id})`)
     })
+    return files
   }
 
-  async searchFile(query: string) {
+  /**
+   * Search a file.
+   * @param {string} query - Search query. For more info about this, visit this link: https://developers.google.com/drive/api/guides/search-files
+   * @returns {Promise<drive_v3.Schema$File[] | undefined>}
+   */
+  async searchFile(query: string): Promise<drive_v3.Schema$File[] | undefined> {
     const res = await this.drive.files.list({
       q: query,
       fields: 'nextPageToken, files(id, name)',
@@ -101,7 +125,13 @@ export class GoogleDrive {
     return res.data.files
   }
 
-  async downloadFile(file: drive_v3.Schema$File[] | undefined, folderName='./temp/') {
+  /**
+   * Download file(s).
+   * @param {drive_v3.Schema$File[]} file - Array object of file.
+   * @param {string} [folderName='temp'] - Folder name to be created. Default is `temp`.
+   * @returns {Promise<void>}
+   */
+  async downloadFile(file: drive_v3.Schema$File[], folderName = 'temp') {
     if (!fs.existsSync(path.join(process.cwd(), folderName))) fs.mkdirSync(path.join(process.cwd(), folderName), { recursive: true })
     for (let i = 0; i < file!.length; i++) {
       const res = await this.drive.files.get({
@@ -130,7 +160,12 @@ export class GoogleDrive {
     }, 1000)
   }
 
-  async iterateFolder(folderId: string) {
+  /**
+   * Iterate through folder.
+   * @param {string} folderId - Folder ID.
+   * @returns {Promise<drive_v3.Schema$File[] | undefined>}
+   */
+  async iterateFolder(folderId: string): Promise<drive_v3.Schema$File[] | undefined> {
     const res = await this.drive.files.list({
       q: `'${folderId}' in parents and trashed = false`,
       fields: 'nextPageToken, files(id, name, size)'

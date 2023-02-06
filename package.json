@@ -1,6 +1,6 @@
 {
   "name": "@aviella-production/assets",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Assets downloader for God's Plan.",
   "main": "index.js",
   "type": "module",

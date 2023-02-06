@@ -1,10 +1,6 @@
 {
   "ts-node": {
-    "transpileOnly": true,
-    "ignore": [
-      "(?:^|/)node_modules/",
-      "index.js"
-    ]
+    "transpileOnly": true
   },
   "compilerOptions": {
     "target": "ESNext",
@@ -14,7 +10,8 @@
     "esModuleInterop": true,
     "declaration": true,
     "isolatedModules": true,
+    "resolveJsonModule": true,
     "outDir": "dist"
   },
-  "include": ["index.ts"]
+  "include": ["src/index.ts"]
 }

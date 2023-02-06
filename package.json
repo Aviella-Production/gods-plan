@@ -1,7 +1,7 @@
 {
   "name": "@aviella-production/assets",
-  "version": "0.0.1",
-  "description": "Assets downloader for God's Plan from Google Drive.",
+  "version": "1.0.0",
+  "description": "Assets downloader for God's Plan.",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -9,8 +9,8 @@
     "lint:fix": "eslint . --fix",
     "clean": "rimraf dist",
     "build": "npm run clean && tsc -p tsconfig.json",
-    "start": "node dist/index.js",
-    "test": "ts-node-esm index.ts"
+    "start": "node index.js",
+    "test": "ts-node-esm src/index.ts"
   },
   "repository": {
     "type": "git",

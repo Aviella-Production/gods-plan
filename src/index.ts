@@ -1,0 +1,137 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import fs from 'fs'
+import path from 'path'
+import process from 'process'
+import chalk from 'chalk'
+import figlet from 'figlet'
+import pkg from '../package.json' assert { type: 'json' }
+import { authenticate } from '@google-cloud/local-auth'
+import { drive_v3, google } from 'googleapis'
+import { OAuth2Client, JSONClient } from 'google-auth-library'
+
+export class Authenticate {
+  scopes: string[]
+  token: string
+  credentials: string
+
+  constructor(scopes: string[], tokenPath: string, credentialsPath: string) {
+    this.scopes = scopes
+    this.token = tokenPath
+    this.credentials = credentialsPath
+  }
+
+  async loadSavedCredentialsIfExist(): Promise<JSONClient | OAuth2Client | null> {
+    try {
+      const content = fs.readFileSync(this.token)
+      const credentials = JSON.parse(content.toString())
+      return google.auth.fromJSON(credentials)
+    } catch (err) {
+      return null
+    }
+  }
+
+  async saveCredentials(client: OAuth2Client): Promise<void> {
+    const content = fs.readFileSync(this.credentials)
+    const keys = JSON.parse(content.toString())
+    const key = keys.installed || keys.web
+    const payload = JSON.stringify({
+      type: 'authorized_user',
+      client_id: key.client_id,
+      client_secret: key.client_secret,
+      refresh_token: client.credentials.refresh_token
+    })
+    fs.writeFileSync(this.token, payload)
+  }
+
+  async authorize(): Promise<JSONClient | OAuth2Client> {
+    console.log(chalk.cyan(figlet.textSync('*Asset Downloader*')), '\n')
+    console.log(chalk.yellow('=>'),chalk.magenta('Source code version:'), chalk.green(pkg.version))
+    console.log(chalk.yellow('=>'), chalk.magenta.underline.bold('If error occurs I don\'t give a fuck btw.'))
+    console.log(chalk.yellow('=>'), chalk.cyan('Check if saved credentials is exist so you just sit there and wait.'))
+    let client = await this.loadSavedCredentialsIfExist()
+    if (client) {
+      console.log(chalk.yellow('=>'), chalk.green('Successfully loaded saved credentials ezpz.'))
+      return client
+    }
+    console.log(chalk.yellow('=>'), chalk.cyan('Nope didn\'t found it, pls login so we can go further.'))
+    client = await authenticate({
+      scopes: this.scopes,
+      keyfilePath: this.credentials
+    })
+    if (client.credentials) await this.saveCredentials(client)
+    console.log(chalk.yellow('=>'), chalk.cyan('Ok nice, imma gonna save this credentials.'))
+    return client
+  }
+}
+
+export class GoogleDrive {
+  drive: drive_v3.Drive
+
+  constructor(drive: drive_v3.Drive) {
+    this.drive = drive
+  }
+
+  async listFiles(pageSize: number): Promise<void> {
+    const res = await this.drive.files.list({
+      spaces: 'drive',
+      pageSize: pageSize,
+      fields: 'nextPageToken, files(id, name)'
+    })
+    const files = res.data.files
+    if (files?.length === 0) {
+      console.log('No files found.')
+      return
+    }
+    console.log('Files:')
+    files?.map((file) => {
+      console.log(`${file.name} (${file.id})`)
+    })
+  }
+
+  async searchFile(query: string) {
+    const res = await this.drive.files.list({
+      q: query,
+      fields: 'nextPageToken, files(id, name)',
+      spaces: 'drive'
+    })
+    // res.data.files?.forEach((file) => { console.log('Found file:', file.name, file.id) })
+    return res.data.files
+  }
+
+  async downloadFile(file: drive_v3.Schema$File[] | undefined, folderName='./temp/') {
+    if (!fs.existsSync(path.join(process.cwd(), folderName))) fs.mkdirSync(path.join(process.cwd(), folderName))
+    for (let i = 0; i < file!.length; i++) {
+      const res = await this.drive.files.get({
+        fileId: file![i].id!,
+        alt: 'media',
+        fields: 'files(size)'
+      }, {
+        responseType: 'stream'
+      })
+      res.data
+        .on('end', () => {
+          console.log(chalk.greenBright('✅ Download success!'), chalk.blueBright(`(File ${1+i} of ${file!.length})`))
+        })
+        .on('error', (err) => {
+          console.log(chalk.redBright('Error!'))
+          console.error(err)
+          return process.exit()
+        })
+        .pipe(fs.createWriteStream(path.join(process.cwd(), folderName, file![i].name!)))
+    }
+    setTimeout(() => {
+      console.log(chalk.bgCyanBright.black.bold(`\nFinished downloading. Total file downloaded: ${file!.length}`))
+      const data = fs.readFileSync(path.join(process.cwd(), 'src/shit.txt'), 'utf-8')
+      console.log(data)
+    }, 1000)
+  }
+
+  async iterateFolder(folderId: string) {
+    const res = await this.drive.files.list({
+      q: `'${folderId}' in parents and trashed = false`,
+      fields: 'nextPageToken, files(id, name, size)'
+    })
+    // res.data.files?.forEach((file) => { console.log('Found file:', file.name, file.id) })
+    return res.data.files
+  }
+}
